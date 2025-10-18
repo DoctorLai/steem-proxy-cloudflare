@@ -12,6 +12,7 @@ A lightweight Cloudflare Worker that automatically selects the healthiest Steem 
 ```bash
 npm install
 npm run dev
+
 # steem-proxy-cloudflare
 Steem Proxy Node via CloudFlare Snippet
 ```
