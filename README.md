@@ -32,5 +32,11 @@ npm test
 npm run deploy
 ```
 
+## Sibling Projects
+- [Steem Load Balancer](https://github.com/doctorlai/steem-load-balancer)
+
 ## License
 [MIT](./LICENSE)
+
+## Contribution
+See [CONTRIBUTING](./CONTRIBUTING.md) and [CODE OF CONDUCT](./CODE_OF_CONDUCT.md)

@@ -8,8 +8,8 @@ Thank you for considering contributing to this project! We welcome contributions
    - Click the "Fork" button at the top right of the repository page.
 2. **Clone Your Fork:**
    ```bash
-   git clone https://github.com/DoctorLai/steem-load-balancer.git
-   cd steem-load-balancer
+   git clone https://github.com/DoctorLai/steem-proxy-cloudflare.git
+   cd steem-proxy-cloudflare
    ```
 3. **Install Dependencies:**
    ```bash
