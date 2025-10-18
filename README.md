@@ -1,6 +1,8 @@
-# Steem Proxy Cloudflare Worker
+# Steem Proxy Cloudflare Snippet
 
-A lightweight Cloudflare Worker that automatically selects the healthiest Steem RPC node, ensuring stable, low-latency JSON-RPC access.
+A lightweight Cloudflare Snippet that automatically selects the healthiest Steem RPC node, ensuring stable, low-latency JSON-RPC access. 
+
+It has been deployed live to [https://api2.steemyy.com](https://api2.steemyy.com).
 
 ## Features
 - Auto health-check and version validation
@@ -12,10 +14,10 @@ A lightweight Cloudflare Worker that automatically selects the healthiest Steem 
 ```bash
 npm install
 npm run dev
-
-# steem-proxy-cloudflare
-Steem Proxy Node via CloudFlare Snippet
 ```
+
+### Disable Cloudflare Web Access Firewall
+You would need a Pro cloudflare account. Also you would need to disable WAF (Web Access Firewall)
 
 ## Testing
 ```bash

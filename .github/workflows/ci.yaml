@@ -1,4 +1,4 @@
-name: Lint & Format
+name: Steem Proxy CI
 
 on: [push, pull_request]
 
