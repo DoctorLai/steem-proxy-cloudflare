@@ -10,6 +10,8 @@ It has been deployed live to [https://api2.steemyy.com](https://api2.steemyy.com
 - CORS enabled
 - Compatible with `fetch` API
 - Instant failover using `Promise.any`
+- 100% Serveless - Just need a DNS record and a Snippet (JS) in CloudFlare
+- Unlimited Requests, compared to CloudFlare Workers which have a daily 100K quota for free plans.
 
 ## Development
 ```bash
@@ -21,6 +23,11 @@ npm run dev
 You would need a Pro cloudflare account. Also you would need to disable WAF (Web Access Firewall) see this post [Bypassing WAF for API/RPC Node: api2.steemyy.com](https://steemit.com/blog/@justyy/bypassing-waf-for-api-rpc-node-api2-steemyy-com)
 
 <img width="1227" height="818" alt="image" src="https://github.com/user-attachments/assets/ee4185c1-8907-4855-91a7-010c7fcf9bb9" />
+
+### DNS Record
+Add a DNS record that points to ip `192.0.2.1` indicating no servers.
+
+<img width="1149" height="122" alt="image" src="https://github.com/user-attachments/assets/0d0fe9f9-f23d-480a-8149-ade6618fa694" />
 
 ## Testing
 ```bash
