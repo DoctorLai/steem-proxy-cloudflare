@@ -1,0 +1,24 @@
+{
+  "name": "steem-proxy-cloudflare",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Serverless Cloudflare Worker proxy that selects the healthiest Steem RPC node automatically.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest --run",
+    "lint": "eslint 'src/**/*.js' 'tests/**/*.js'",
+    "lint:fix": "eslint 'src/**/*.js' 'tests/**/*.js' --fix",
+    "format": "prettier --check 'src/**/*.js' 'tests/**/*.js'",
+    "format:fix": "prettier --write 'src/**/*.js' 'tests/**/*.js'"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.38.0",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "prettier": "^3.6.2",
+    "vitest": "^2.0.0"
+  },
+  "license": "MIT"
+}
