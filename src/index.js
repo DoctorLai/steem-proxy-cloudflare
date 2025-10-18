@@ -1,5 +1,11 @@
 export default {
   async fetch(request) {
+    const UserAgent =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
+    const min_blockchain_version = "0.23.0";
+    const serverless_version = "2025-10-18";
+    const nodes = ["https://api.justyy.com", "https://api.steemit.com"];
+
     const { method } = request;
 
     // ✅ Handle CORS preflight requests
@@ -24,13 +30,6 @@ export default {
         },
       });
     }
-
-    const UserAgent =
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36";
-    const min_blockchain_version = "0.23.0";
-    const serverless_version = "2025-10-13";
-
-    const nodes = ["https://api.justyy.com", "https://api.steemit.com"];
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
