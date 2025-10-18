@@ -18,7 +18,9 @@ npm run dev
 ```
 
 ### Disable Cloudflare Web Access Firewall
-You would need a Pro cloudflare account. Also you would need to disable WAF (Web Access Firewall)
+You would need a Pro cloudflare account. Also you would need to disable WAF (Web Access Firewall) see this post [Bypassing WAF for API/RPC Node: api2.steemyy.com](https://steemit.com/blog/@justyy/bypassing-waf-for-api-rpc-node-api2-steemyy-com)
+
+<img width="1227" height="818" alt="image" src="https://github.com/user-attachments/assets/ee4185c1-8907-4855-91a7-010c7fcf9bb9" />
 
 ## Testing
 ```bash
