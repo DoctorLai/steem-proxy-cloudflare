@@ -25,12 +25,13 @@ You would need a Pro cloudflare account. Also you would need to disable WAF (Web
 <img width="1227" height="818" alt="image" src="https://github.com/user-attachments/assets/ee4185c1-8907-4855-91a7-010c7fcf9bb9" />
 
 ### DNS Record
-Add a DNS record that points to ip `192.0.2.1` indicating no servers.
+Add a DNS record that points to ip `192.0.2.1` indicating no server will be routed to.
 
 <img width="1149" height="122" alt="image" src="https://github.com/user-attachments/assets/0d0fe9f9-f23d-480a-8149-ade6618fa694" />
 
 ## Testing
 ```bash
+# or: npm run test
 npm test
 ```
 
@@ -38,6 +39,10 @@ npm test
 ```bash
 npm run deploy
 ```
+
+Alternatively, a quick deploy would be just to copy the [index.js](./src/index.js) to the CloudFlare snippet. You would also need to add the DNS record (see above), configure the Snippet Rule e.g. `(http.host eq "api2.steemyy.com")` and Disable WAF (see above).
+
+<img width="570" height="438" alt="image" src="https://github.com/user-attachments/assets/21d2d210-a2c3-4896-b4a5-907a38e839c3" />
 
 ## Sibling Projects
 - [Steem Load Balancer](https://github.com/doctorlai/steem-load-balancer)
