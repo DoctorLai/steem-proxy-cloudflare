@@ -27,35 +27,35 @@ describe("fetchWithTimeout()", () => {
     expect(await response.text()).toBe("ok");
   });
 
-  // it("rejects when fetch takes too long", async () => {
-  //   global.fetch = vi.fn((_url, { signal }) => {
-  //     return new Promise((_resolve, reject) => {
-  //       signal.addEventListener("abort", () => reject(new Error("aborted")));
-  //     });
-  //   });
+  it("rejects when fetch takes too long", async () => {
+    global.fetch = vi.fn((_url, { signal }) => {
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    });
 
-  //   await expect(fetchWithTimeout("http://example.com", { timeout: 50 })).rejects.toThrow(
-  //     "aborted"
-  //   );
-  // });
+    await expect(fetchWithTimeout("http://example.com", { timeout: 50 })).rejects.toThrow(
+      "aborted"
+    );
+  });
 
-  // it("passes AbortController signal through fetch", async () => {
-  //   const controller = new AbortController();
+  it("passes AbortController signal through fetch", async () => {
+    const controller = new AbortController();
 
-  //   global.fetch = vi.fn((_url, { signal }) => {
-  //     return new Promise((_resolve, reject) => {
-  //       signal.addEventListener("abort", () => reject(new Error("aborted")));
-  //     });
-  //   });
+    global.fetch = vi.fn((_url, { signal }) => {
+      return new Promise((_resolve, reject) => {
+        signal.addEventListener("abort", () => reject(new Error("aborted")));
+      });
+    });
 
-  //   const fetchPromise = fetchWithTimeout("http://example.com", {
-  //     timeout: 100,
-  //     signal: controller.signal,
-  //   });
+    const fetchPromise = fetchWithTimeout("http://example.com", {
+      timeout: 100,
+      signal: controller.signal,
+    });
 
-  //   // Abort manually
-  //   controller.abort();
+    // Abort manually
+    controller.abort();
 
-  //   await expect(fetchPromise).rejects.toThrow("aborted");
-  // });
+    await expect(fetchPromise).rejects.toThrow("aborted");
+  });
 });

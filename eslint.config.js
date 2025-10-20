@@ -4,7 +4,7 @@ import pluginImport from "eslint-plugin-import";
 import prettier from "eslint-config-prettier";
 
 export default [
-  js.configs.recommended,
+  js.configs.recommended,  
   prettier,
   {
     files: ["src/**/*.js"],
@@ -60,6 +60,7 @@ export default [
         caches: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",        
+        console: "readonly",        
       },
     },
   },
