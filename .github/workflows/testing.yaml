@@ -26,6 +26,13 @@ jobs:
       - name: Run tests with coverage
         run: npx vitest run --coverage
 
+      - name: Report coverage on PR
+        uses: davelosert/vitest-coverage-report-action@v2
+        if: github.event_name == 'pull_request'
+        with:
+          json-summary-path: coverage/coverage-summary.json
+          json-final-path: coverage/coverage-final.json
+
       - name: Upload coverage report (HTML)
         if: always()
         uses: actions/upload-artifact@v4
