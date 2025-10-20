@@ -56,23 +56,23 @@ describe("Cloudflare Worker", () => {
   it("successfully forwards GET request to first available node", async () => {
     // Mock fetch to simulate version check and then forwarding
     global.fetch = vi.fn(async (url, opts) => {
-      // Version check call
       if (opts?.method === "POST" && opts.body?.includes("get_version")) {
-        return {
-          ok: true,
+        return new Response(JSON.stringify({ result: { blockchain_version: "0.25.0" } }), {
           status: 200,
-          json: async () => ({ result: { blockchain_version: "0.25.0" } }),
-          text: async () => JSON.stringify({ result: { blockchain_version: "0.25.0" } }),
-        };
+        });
       }
 
-      // Forwarded request (GET)
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({ data: "success" }),
-        text: async () => JSON.stringify({ data: "success" }),
-      };
+      // GET forwarding
+      return new Response(
+        JSON.stringify({
+          __server__: "node1",
+          __version__: "0.25.0",
+          __serverless_version__: "1.2.3",
+          __country__: "US",
+          data: "success",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     });
 
     const req = new Request("https://example.com", { method: "GET" });

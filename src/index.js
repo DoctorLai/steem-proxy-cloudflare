@@ -1,5 +1,5 @@
 // === CONFIGURATION ===
-const CONFIG = {
+export const CONFIG = {
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   MIN_VERSION: "0.23.0",
@@ -9,7 +9,7 @@ const CONFIG = {
   FETCH_TIMEOUT_MS: 5000,
 };
 
-const corsHeaders = {
+export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
@@ -41,8 +41,9 @@ export async function fetchWithTimeout(url, options = {}, timeout = 5000, timer 
   }
 }
 
-export async function getVersion(server) {
-  const res = await fetchWithTimeout(server, {
+export async function getVersion(server, _fetchWithTimeout) {
+  const fetcher = _fetchWithTimeout || fetchWithTimeout;
+  const res = await fetcher(server, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -65,17 +66,19 @@ export async function getVersion(server) {
   return { server, version: ver };
 }
 
-export async function safeGetVersion(server) {
+export async function safeGetVersion(server, _fetchWithTimeout) {
+  const fetcher = _fetchWithTimeout || fetchWithTimeout;
   try {
-    return await getVersion(server);
+    return await getVersion(server, fetcher);
   } catch (err) {
     console.warn(`Version check failed for ${server}: ${err.message}`);
     throw err;
   }
 }
 
-export async function forwardRequest(apiURL, body = null, method = "GET") {
-  const res = await fetchWithTimeout(apiURL, {
+export async function forwardRequest(apiURL, body = null, method = "GET", _fetchWithTimeout) {
+  const fetcher = _fetchWithTimeout || fetchWithTimeout;
+  const res = await fetcher(apiURL, {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -118,7 +121,7 @@ export default {
         selected = await cached.json();
       } else {
         const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
-        selected = await Promise.any(shuffled.map(safeGetVersion)).catch(() => {
+        selected = await Promise.any(shuffled.map((s) => safeGetVersion(s, fetch))).catch(() => {
           throw new Error("All upstream nodes failed");
         });
         await cache.put(
