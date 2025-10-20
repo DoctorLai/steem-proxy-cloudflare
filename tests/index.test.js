@@ -7,10 +7,22 @@ describe("Cloudflare Worker", () => {
   beforeEach(() => {
     // Save original fetch
     globalFetch = global.fetch;
+
+    // Mock Cloudflare cache API
+    global.caches = {
+      default: {
+        store: new Map(),
+        async match(request) {
+          return this.store.get(request.url);
+        },
+        async put(request, response) {
+          this.store.set(request.url, response);
+        },
+      },
+    };
   });
 
   afterEach(() => {
-    // Restore fetch
     global.fetch = globalFetch;
     vi.restoreAllMocks();
   });
@@ -41,19 +53,26 @@ describe("Cloudflare Worker", () => {
     expect(json.error).toMatch(/All RPC nodes failed/);
   });
 
-  // ✅ Happy path test
   it("successfully forwards GET request to first available node", async () => {
-    // Mock fetch to simulate a working node
-    // eslint-disable-next-line no-unused-vars
+    // Mock fetch to simulate version check and then forwarding
     global.fetch = vi.fn(async (url, opts) => {
-      return {
-        ok: true,
-        status: 200,
-        json: async () => ({
-          result: { blockchain_version: "0.25.0" },
+      if (opts?.method === "POST" && opts.body?.includes("get_version")) {
+        return new Response(JSON.stringify({ result: { blockchain_version: "0.25.0" } }), {
+          status: 200,
+        });
+      }
+
+      // GET forwarding
+      return new Response(
+        JSON.stringify({
+          __server__: "node1",
+          __version__: "0.25.0",
+          __serverless_version__: "1.2.3",
+          __country__: "US",
+          data: "success",
         }),
-        text: async () => JSON.stringify({ result: { blockchain_version: "0.25.0" } }),
-      };
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
     });
 
     const req = new Request("https://example.com", { method: "GET" });
@@ -65,5 +84,6 @@ describe("Cloudflare Worker", () => {
     expect(json.__version__).toBe("0.25.0");
     expect(json.__serverless_version__).toBeDefined();
     expect(json.__country__).toBeDefined();
+    expect(json.data).toBe("success");
   });
 });
