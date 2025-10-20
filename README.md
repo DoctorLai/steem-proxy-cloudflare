@@ -1,5 +1,5 @@
 # Steem Proxy Cloudflare Snippet
-[![Steem Proxy CI](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml) [![Steem Proxy Lint & Format](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml)
+[![Steem Proxy CI](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml) [![Steem Proxy Lint & Format](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml) [![Run Tests with Coverage](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/testing.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/testing.yaml)
 
 A lightweight Cloudflare Snippet that automatically selects the healthiest Steem RPC node, ensuring stable, low-latency JSON-RPC access. 
 
