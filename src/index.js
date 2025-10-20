@@ -5,7 +5,6 @@ export const CONFIG = {
   MIN_VERSION: "0.23.0",
   SERVERLESS_VERSION: "2025-10-20",
   NODES: ["https://api.justyy.com", "https://api.steemit.com"],
-  VERSION_CACHE_TTL: 3, // seconds
   FETCH_TIMEOUT_MS: 5000,
 };
 
@@ -111,27 +110,10 @@ export default {
       const country = request.headers.get("cf-ipcountry") || "UNKNOWN";
       const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
-      // === Cache version selection for a short time ===
-      const cache = caches.default;
-      const cacheKey = new Request("https://internal/version-cache");
-      let selected;
-
-      const cached = await cache.match(cacheKey);
-      if (cached) {
-        selected = await cached.json();
-      } else {
-        const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
-        selected = await Promise.any(shuffled.map((s) => safeGetVersion(s, fetch))).catch(() => {
-          throw new Error("All upstream nodes failed");
-        });
-        await cache.put(
-          cacheKey,
-          new Response(JSON.stringify(selected), {
-            headers: { "Cache-Control": `max-age=${CONFIG.VERSION_CACHE_TTL}` },
-          })
-        );
-      }
-
+      const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
+      let selected = await Promise.any(shuffled.map((s) => safeGetVersion(s, fetch))).catch(() => {
+        throw new Error("All upstream nodes failed");
+      });
       // === Forward the actual request ===
       let respObj;
       if (method === "POST") {
