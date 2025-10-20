@@ -16,6 +16,12 @@ export default [
         fetch: "readonly",
         Response: "readonly",
         Request: "readonly",
+
+        // ✅ Cloudflare Worker runtime globals
+        AbortController: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+        caches: "readonly",        
       },
     },
     plugins: {
@@ -50,6 +56,10 @@ export default [
         fetch: "readonly",
         Request: "readonly",
         Response: "readonly",
+        AbortController: "readonly",
+        caches: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",        
       },
     },
   },

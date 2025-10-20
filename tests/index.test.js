@@ -7,10 +7,22 @@ describe("Cloudflare Worker", () => {
   beforeEach(() => {
     // Save original fetch
     globalFetch = global.fetch;
+
+    // Mock Cloudflare cache API
+    global.caches = {
+      default: {
+        store: new Map(),
+        async match(request) {
+          return this.store.get(request.url);
+        },
+        async put(request, response) {
+          this.store.set(request.url, response);
+        },
+      },
+    };
   });
 
   afterEach(() => {
-    // Restore fetch
     global.fetch = globalFetch;
     vi.restoreAllMocks();
   });
@@ -41,18 +53,25 @@ describe("Cloudflare Worker", () => {
     expect(json.error).toMatch(/All RPC nodes failed/);
   });
 
-  // ✅ Happy path test
   it("successfully forwards GET request to first available node", async () => {
-    // Mock fetch to simulate a working node
-    // eslint-disable-next-line no-unused-vars
+    // Mock fetch to simulate version check and then forwarding
     global.fetch = vi.fn(async (url, opts) => {
+      // Version check call
+      if (opts?.method === "POST" && opts.body?.includes("get_version")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ result: { blockchain_version: "0.25.0" } }),
+          text: async () => JSON.stringify({ result: { blockchain_version: "0.25.0" } }),
+        };
+      }
+
+      // Forwarded request (GET)
       return {
         ok: true,
         status: 200,
-        json: async () => ({
-          result: { blockchain_version: "0.25.0" },
-        }),
-        text: async () => JSON.stringify({ result: { blockchain_version: "0.25.0" } }),
+        json: async () => ({ data: "success" }),
+        text: async () => JSON.stringify({ data: "success" }),
       };
     });
 
@@ -65,5 +84,6 @@ describe("Cloudflare Worker", () => {
     expect(json.__version__).toBe("0.25.0");
     expect(json.__serverless_version__).toBeDefined();
     expect(json.__country__).toBeDefined();
+    expect(json.data).toBe("success");
   });
 });
