@@ -41,7 +41,6 @@ export async function fetchWithTimeout(url, options = {}, timeout = 5000, timer 
   }
 }
 
-
 export async function getVersion(server) {
   const res = await fetchWithTimeout(server, {
     method: "POST",
