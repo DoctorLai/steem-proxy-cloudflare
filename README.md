@@ -1,5 +1,5 @@
 # Steem Proxy Cloudflare Snippet
-[![Steem Proxy CI](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml) [![Steem Proxy Lint & Format](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml) [![Run Tests with Coverage](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/testing.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/testing.yaml)
+[![Steem Proxy CI](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/ci.yaml) [![Steem Proxy Lint & Format](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/lint.yml) [![Run Tests with Coverage](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/coverage.yaml/badge.svg)](https://github.com/DoctorLai/steem-proxy-cloudflare/actions/workflows/coverage.yaml)
 
 A lightweight Cloudflare Snippet that automatically selects the healthiest Steem RPC node, ensuring stable, low-latency JSON-RPC access. 
 
@@ -33,6 +33,11 @@ Add a DNS record that points to ip `192.0.2.1` indicating no server will be rout
 ```bash
 # or: npm run test
 npm test
+```
+
+## Test Coverage
+```bash
+npx vitest run --coverage
 ```
 
 ## Deploy
