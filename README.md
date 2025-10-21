@@ -37,7 +37,7 @@ npm test
 
 ## Test Coverage
 ```bash
-npx vitest run --coverage
+npm run coverage
 ```
 
 ## Deploy
