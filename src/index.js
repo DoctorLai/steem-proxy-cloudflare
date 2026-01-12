@@ -3,8 +3,8 @@ export const CONFIG = {
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   MIN_VERSION: "0.23.0",
-  SERVERLESS_VERSION: "2025-10-20",
-  NODES: ["https://api.justyy.com", "https://api.steemit.com"],
+  SERVERLESS_VERSION: "2026-01-12",
+  NODES: ["https://api2.justyy.com", "https://api.steemit.com"],
   FETCH_TIMEOUT_MS: 5000,
 };
 
@@ -13,6 +13,15 @@ export const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
+
+export const DOWNSTREAM_HEADERS = Object.freeze({
+  "https://api.steemit.com": {
+    "X-Edge-Key": "STEEMIT_STATIC_SECRET",
+  },
+  "https://api2.justyy.com": {
+    "X-Edge-Key": "JUSTYY_STATIC_SECRET",
+  },
+});
 
 // === Utilities ===
 export const compareVersion = (v1, v2) => {
@@ -75,13 +84,20 @@ export async function safeGetVersion(server, _fetchWithTimeout) {
   }
 }
 
-export async function forwardRequest(apiURL, body = null, method = "GET", _fetchWithTimeout) {
+export async function forwardRequest(
+  apiURL,
+  body = null,
+  method = "GET",
+  extraHeaders = {},
+  _fetchWithTimeout
+) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   const res = await fetcher(apiURL, {
     method,
     headers: {
       "Content-Type": "application/json",
       "User-Agent": CONFIG.USER_AGENT,
+      ...extraHeaders,
     },
     body: body ? JSON.stringify(body) : null,
   });
@@ -116,11 +132,18 @@ export default {
       });
       // === Forward the actual request ===
       let respObj;
+
+      if (!DOWNSTREAM_HEADERS[selected.server]) {
+        throw new Error(`No security headers defined for ${selected.server}`);
+      }
+
+      const nodeHeaders = DOWNSTREAM_HEADERS[selected.server];
+
       if (method === "POST") {
         const body = await request.json();
-        respObj = await forwardRequest(selected.server, body, "POST");
+        respObj = await forwardRequest(selected.server, body, "POST", nodeHeaders);
       } else {
-        respObj = await forwardRequest(selected.server);
+        respObj = await forwardRequest(selected.server, null, "GET", nodeHeaders);
       }
 
       // === Parse upstream response ===
