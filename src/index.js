@@ -16,10 +16,10 @@ export const corsHeaders = {
 
 export const DOWNSTREAM_HEADERS = Object.freeze({
   "https://api.steemit.com": {
-    "X-Edge-Key": "STEEMIT_STATIC_SECRET",
+    "X-Edge-Key": "static_secret_value_here",
   },
   "https://api2.justyy.com": {
-    "X-Edge-Key": "JUSTYY_STATIC_SECRET",
+    "X-Edge-Key": "another_static_secret_value",
   },
 });
 

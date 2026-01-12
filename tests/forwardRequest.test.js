@@ -76,4 +76,16 @@ describe("forwardRequest()", () => {
 
     expect(mockFetch).toHaveBeenCalledOnce();
   });
+
+  it("handles non-JSON upstream response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "NOT_JSON",
+    });
+
+    const result = await forwardRequest("https://example.com", null, "GET", {}, mockFetch);
+
+    expect(result.text).toBe("NOT_JSON");
+  });
 });
