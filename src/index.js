@@ -3,8 +3,8 @@ export const CONFIG = {
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   MIN_VERSION: "0.23.0",
-  SERVERLESS_VERSION: "2026-01-12",
-  NODES: ["https://api2.justyy.com", "https://api.steemit.com"],
+  SERVERLESS_VERSION: "2026-05-13",
+  NODES: ["https://api.justyy.com", "https://api.steemit.com"],
   FETCH_TIMEOUT_MS: 5000,
 };
 
@@ -18,7 +18,7 @@ export const DOWNSTREAM_HEADERS = Object.freeze({
   "https://api.steemit.com": {
     "X-Edge-Key": "static_secret_value_here",
   },
-  "https://api2.justyy.com": {
+  "https://api.justyy.com": {
     "X-Edge-Key": "another_static_secret_value",
   },
 });
@@ -40,8 +40,17 @@ export async function fetchWithTimeout(url, options = {}, timeout = 5000, timer 
   const controller = new AbortController();
   const t = timer(() => controller.abort(), timeout);
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
+    // Use redirect: "manual" to track redirect chains and avoid double-counting subrequests
+    const res = await fetch(url, { ...options, signal: controller.signal, redirect: "manual" });
     clearTimeout(t);
+
+    // Follow redirect chain to final URL (each redirect already counts as a subrequest)
+    if ([301, 302, 303, 307, 308].includes(res.status)) {
+      const finalUrl = res.headers.get("location");
+      if (!finalUrl) throw new Error(`Redirect status ${res.status} but no location header`);
+      return fetchWithTimeout(finalUrl, { ...options, redirect: "manual" }, timeout, timer);
+    }
+
     return res;
   } catch (err) {
     clearTimeout(t);
@@ -126,10 +135,26 @@ export default {
       const country = request.headers.get("cf-ipcountry") || "UNKNOWN";
       const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
+      // Try nodes sequentially to minimize subrequests (vs concurrent Promise.any which uses 1 subrequest per attempt)
+      // Cloudflare snippet limits: Free=0, Pro=2, Business=3, Enterprise=5 subrequests
+      // Sequential tries: 1 version check + 1 forward = 2 subrequests (Pro plan)
       const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
-      let selected = await Promise.any(shuffled.map((s) => safeGetVersion(s, fetch))).catch(() => {
-        throw new Error("All upstream nodes failed");
-      });
+      let selected = null;
+      let lastError = null;
+
+      for (const node of shuffled) {
+        try {
+          selected = await safeGetVersion(node, fetch);
+          break; // Success - use this node
+        } catch (err) {
+          lastError = err;
+          // Try next node
+        }
+      }
+
+      if (!selected) {
+        throw lastError || new Error("All upstream nodes failed");
+      }
       // === Forward the actual request ===
       let respObj;
 

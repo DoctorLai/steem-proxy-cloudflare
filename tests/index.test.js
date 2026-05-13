@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import worker from "../src/index.js";
+import worker, { CONFIG } from "../src/index.js";
 
 describe("Cloudflare Worker", () => {
   let globalFetch;
@@ -85,5 +85,81 @@ describe("Cloudflare Worker", () => {
     expect(json.__serverless_version__).toBeDefined();
     expect(json.__country__).toBeDefined();
     expect(json.data).toBe("success");
+  });
+
+  it("returns 502 when the selected node has no downstream headers", async () => {
+    const originalNodes = [...CONFIG.NODES];
+    CONFIG.NODES = ["https://api.unknown.com"];
+
+    try {
+      global.fetch = vi.fn(async (url, opts) => {
+        if (opts?.method === "POST" && opts.body?.includes("get_version")) {
+          return new Response(JSON.stringify({ result: { blockchain_version: "0.25.0" } }), {
+            status: 200,
+          });
+        }
+        return new Response(JSON.stringify({ error: "should not reach forward" }), { status: 200 });
+      });
+
+      const req = new Request("https://example.com", { method: "GET" });
+      const res = await worker.fetch(req);
+      const json = await res.json();
+
+      expect(res.status).toBe(502);
+      expect(json.message).toMatch(/No security headers defined/);
+    } finally {
+      CONFIG.NODES = originalNodes;
+    }
+  });
+
+  it("forwards POST requests and preserves JSON metadata", async () => {
+    global.fetch = vi.fn(async (url, opts) => {
+      if (opts?.method === "POST" && opts.body?.includes("get_version")) {
+        return new Response(JSON.stringify({ result: { blockchain_version: "0.25.0" } }), {
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ message: "posted" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+
+    const req = new Request("https://example.com", {
+      method: "POST",
+      body: JSON.stringify({ hello: "world" }),
+      headers: { "Content-Type": "application/json" },
+    });
+    const res = await worker.fetch(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.message).toBe("posted");
+    expect(json.__server__).toBeDefined();
+    expect(json.__version__).toBe("0.25.0");
+  });
+
+  it("handles non-JSON upstream responses gracefully", async () => {
+    global.fetch = vi.fn(async (url, opts) => {
+      if (opts?.method === "POST" && opts.body?.includes("get_version")) {
+        return new Response(JSON.stringify({ result: { blockchain_version: "0.25.0" } }), {
+          status: 200,
+        });
+      }
+
+      return new Response("not valid json", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
+    });
+
+    const req = new Request("https://example.com", { method: "GET" });
+    const res = await worker.fetch(req);
+    const json = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(json.error).toBe("Upstream returned non-JSON");
+    expect(json.body).toBe("not valid json");
   });
 });
