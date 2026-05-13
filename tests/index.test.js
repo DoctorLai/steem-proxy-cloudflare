@@ -120,10 +120,10 @@ describe("Cloudflare Worker", () => {
         });
       }
 
-      return new Response(
-        JSON.stringify({ message: "posted" }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ message: "posted" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     });
 
     const req = new Request("https://example.com", {
@@ -148,7 +148,10 @@ describe("Cloudflare Worker", () => {
         });
       }
 
-      return new Response("not valid json", { status: 200, headers: { "Content-Type": "text/plain" } });
+      return new Response("not valid json", {
+        status: 200,
+        headers: { "Content-Type": "text/plain" },
+      });
     });
 
     const req = new Request("https://example.com", { method: "GET" });
