@@ -9,9 +9,21 @@ It has been deployed live to [https://api2.steemyy.com](https://api2.steemyy.com
 - Auto health-check and version validation
 - CORS enabled
 - Compatible with `fetch` API
-- Instant failover using `Promise.any`
+- Efficient sequential failover (optimized for Cloudflare snippet subrequest limits)
 - 100% Serveless - Just need a DNS record and a Snippet (JS) in CloudFlare
 - Unlimited Requests, compared to CloudFlare Workers which have a daily 100K quota for free plans.
+
+## Cloudflare Plan Requirements
+This snippet requires a **Cloudflare Pro plan or higher** due to subrequest limits:
+
+| Plan | Subrequests | Snippets | Status |
+|------|------------|----------|---------|
+| Free | 0 | 0 | ❌ Not compatible |
+| Pro | 2 | 25 | ✅ Works (1 version check + 1 forward request) |
+| Business | 3 | 50 | ✅ Fully compatible |
+| Enterprise | 5 | 300 | ✅ Fully compatible |
+
+The snippet is optimized to use minimum subrequests: sequential node selection (1 subrequest) + forwarding request (1 subrequest) = 2 subrequests total in typical use.
 
 ## Development
 ```bash
