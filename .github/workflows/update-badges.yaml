@@ -1,0 +1,67 @@
+name: Update Badges
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: update-badges
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  language:
+    name: JavaScript percentage
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Generate badge endpoint
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require("node:fs");
+            const { data: languages } = await github.rest.repos.listLanguages({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const totalBytes = Object.values(languages).reduce((sum, bytes) => sum + bytes, 0);
+            const javascriptBytes = languages.JavaScript ?? 0;
+            const percentage = totalBytes === 0 ? 0 : (javascriptBytes / totalBytes) * 100;
+            const badge = {
+              schemaVersion: 1,
+              label: "JavaScript",
+              message: `${percentage.toFixed(1)}%`,
+              color: "f1e05a",
+            };
+            fs.writeFileSync("/tmp/javascript.json", `${JSON.stringify(badge)}\n`);
+
+      - name: Publish badge endpoint
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin badges; then
+            git fetch origin badges
+            git switch --force-create badges origin/badges
+          else
+            git switch --orphan badges
+          fi
+
+          cp /tmp/javascript.json javascript.json
+          git add javascript.json
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m "chore: update language badge [skip ci]"
+          git push origin badges

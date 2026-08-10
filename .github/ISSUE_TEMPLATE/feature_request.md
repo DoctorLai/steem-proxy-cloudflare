@@ -1,20 +1,23 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: ''
-labels: ''
-assignees: ''
-
+about: Propose an improvement to the proxy or its tooling
+title: "[Feature]: "
+labels: enhancement
+assignees: ""
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+## Problem
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+Describe the use case or limitation this proposal addresses.
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Proposed Solution
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+Describe the desired behavior, including any API compatibility or deployment considerations.
+
+## Alternatives
+
+Describe other approaches you considered.
+
+## Additional Context
+
+Add examples, prior art, or other relevant details.

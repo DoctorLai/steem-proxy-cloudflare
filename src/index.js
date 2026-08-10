@@ -3,14 +3,14 @@ export const CONFIG = {
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   MIN_VERSION: "0.23.0",
-  SERVERLESS_VERSION: "2026-05-13",
+  SERVERLESS_VERSION: "2026-08-10",
   NODES: ["https://api.justyy.com", "https://api.steemit.com"],
   FETCH_TIMEOUT_MS: 5000,
 };
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -36,29 +36,53 @@ export const compareVersion = (v1, v2) => {
   return 0;
 };
 
-export async function fetchWithTimeout(url, options = {}, timeout = 5000, timer = setTimeout) {
+export async function fetchWithTimeout(
+  url,
+  options = {},
+  timeout = CONFIG.FETCH_TIMEOUT_MS,
+  timer = setTimeout
+) {
   const controller = new AbortController();
-  const t = timer(() => controller.abort(), timeout);
+  const timeoutId = timer(() => controller.abort(), timeout);
+  const externalSignal = options.signal;
+  const abortFromExternalSignal = () => controller.abort(externalSignal.reason);
+
+  if (externalSignal?.aborted) {
+    abortFromExternalSignal();
+  } else {
+    externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
+  }
+
+  const cleanup = () => {
+    clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+  };
+
+  let res;
   try {
-    // Use redirect: "manual" to track redirect chains and avoid double-counting subrequests
-    const res = await fetch(url, { ...options, signal: controller.signal, redirect: "manual" });
-    clearTimeout(t);
-
-    // Follow redirect chain to final URL (each redirect already counts as a subrequest)
-    if ([301, 302, 303, 307, 308].includes(res.status)) {
-      const finalUrl = res.headers.get("location");
-      if (!finalUrl) throw new Error(`Redirect status ${res.status} but no location header`);
-      return fetchWithTimeout(finalUrl, { ...options, redirect: "manual" }, timeout, timer);
-    }
-
-    return res;
+    res = await fetch(url, { ...options, signal: controller.signal });
   } catch (err) {
-    clearTimeout(t);
+    cleanup();
     throw err;
   }
+
+  // Keep the timeout/abort signal active until the response body has been
+  // fully consumed, since fetch() resolves as soon as headers arrive.
+  for (const method of ["json", "text", "arrayBuffer", "blob", "formData"]) {
+    const original = res[method].bind(res);
+    res[method] = async (...args) => {
+      try {
+        return await original(...args);
+      } finally {
+        cleanup();
+      }
+    };
+  }
+
+  return res;
 }
 
-export async function getVersion(server, _fetchWithTimeout) {
+export async function getVersion(server, _fetchWithTimeout, signal) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   const res = await fetcher(server, {
     method: "POST",
@@ -72,6 +96,7 @@ export async function getVersion(server, _fetchWithTimeout) {
       method: "call",
       params: ["login_api", "get_version", []],
     }),
+    signal,
   });
   if (!res.ok) throw new Error(`${server} returned ${res.status}`);
   const json = await res.json();
@@ -83,10 +108,10 @@ export async function getVersion(server, _fetchWithTimeout) {
   return { server, version: ver };
 }
 
-export async function safeGetVersion(server, _fetchWithTimeout) {
+export async function safeGetVersion(server, _fetchWithTimeout, signal) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   try {
-    return await getVersion(server, fetcher);
+    return await getVersion(server, fetcher, signal);
   } catch (err) {
     console.warn(`Version check failed for ${server}: ${err.message}`);
     throw err;
@@ -98,9 +123,11 @@ export async function forwardRequest(
   body = null,
   method = "GET",
   extraHeaders = {},
-  _fetchWithTimeout
+  _fetchWithTimeout,
+  signal
 ) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
+  const hasBody = body !== null && body !== undefined;
   const res = await fetcher(apiURL, {
     method,
     headers: {
@@ -108,7 +135,8 @@ export async function forwardRequest(
       "User-Agent": CONFIG.USER_AGENT,
       ...extraHeaders,
     },
-    body: body ? JSON.stringify(body) : null,
+    body: hasBody ? JSON.stringify(body) : null,
+    signal,
   });
   const text = await res.text();
   return { statusCode: res.status, text };
@@ -131,24 +159,34 @@ export default {
       });
     }
 
+    let requestBody = null;
+    if (method === "POST") {
+      try {
+        requestBody = await request.json();
+      } catch {
+        return new Response(
+          JSON.stringify({ code: "INVALID_JSON", error: "Request body must be valid JSON" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     try {
       const country = request.headers.get("cf-ipcountry") || "UNKNOWN";
-      const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
-      // Try nodes sequentially to minimize subrequests (vs concurrent Promise.any which uses 1 subrequest per attempt)
-      // Cloudflare snippet limits: Free=0, Pro=2, Business=3, Enterprise=5 subrequests
-      // Sequential tries: 1 version check + 1 forward = 2 subrequests (Pro plan)
-      const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
+      const shuffled = [...CONFIG.NODES].sort(() => Math.random() - 0.5);
       let selected = null;
       let lastError = null;
 
       for (const node of shuffled) {
         try {
-          selected = await safeGetVersion(node, fetch);
-          break; // Success - use this node
+          selected = await safeGetVersion(node, undefined, request.signal);
+          break;
         } catch (err) {
           lastError = err;
-          // Try next node
         }
       }
 
@@ -165,10 +203,23 @@ export default {
       const nodeHeaders = DOWNSTREAM_HEADERS[selected.server];
 
       if (method === "POST") {
-        const body = await request.json();
-        respObj = await forwardRequest(selected.server, body, "POST", nodeHeaders);
+        respObj = await forwardRequest(
+          selected.server,
+          requestBody,
+          "POST",
+          nodeHeaders,
+          undefined,
+          request.signal
+        );
       } else {
-        respObj = await forwardRequest(selected.server, null, "GET", nodeHeaders);
+        respObj = await forwardRequest(
+          selected.server,
+          null,
+          "GET",
+          nodeHeaders,
+          undefined,
+          request.signal
+        );
       }
 
       // === Parse upstream response ===
@@ -180,11 +231,13 @@ export default {
       }
 
       // === Add metadata ===
-      json["__server__"] = selected.server;
-      json["__version__"] = selected.version;
-      json["__country__"] = country;
-      json["__serverless_version__"] = CONFIG.SERVERLESS_VERSION;
-      json["__steem_servers__"] = CONFIG.NODES;
+      if (json !== null && typeof json === "object" && !Array.isArray(json)) {
+        json["__server__"] = selected.server;
+        json["__version__"] = selected.version;
+        json["__country__"] = country;
+        json["__serverless_version__"] = CONFIG.SERVERLESS_VERSION;
+        json["__steem_servers__"] = CONFIG.NODES;
+      }
 
       // === Response ===
       return new Response(JSON.stringify(json), {
@@ -192,11 +245,10 @@ export default {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "Cache-Control": "max-age=3",
+          "Cache-Control": "private, max-age=3",
           "X-Serverless-Version": CONFIG.SERVERLESS_VERSION,
           "X-Origin-Server": selected.server,
           "X-Country": country,
-          "X-Client-IP": ip,
         },
       });
     } catch (err) {
