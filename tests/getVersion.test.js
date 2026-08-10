@@ -52,6 +52,16 @@ describe("getVersion() and safeGetVersion()", () => {
     expect(version).toEqual({ server: "https://example.com", version: "2.0.0" });
   });
 
+  it("safeGetVersion returns version if getVersion returns version that is too old", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ result: { blockchain_version: "0.0.0" } }),
+    });
+
+    const version = safeGetVersion("https://example.com", mockFetch);
+    await expect(version).rejects.toThrow("Version too low: 0.0.0");
+  });
+
   it("safeGetVersion logs warning and rethrows if getVersion fails", async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 500 });
 

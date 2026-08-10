@@ -14,6 +14,15 @@ export const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
+export const DOWNSTREAM_HEADERS = Object.freeze({
+  "https://api.steemit.com": {
+    "X-Edge-Key": "static_secret_value_here",
+  },
+  "https://api.justyy.com": {
+    "X-Edge-Key": "another_static_secret_value",
+  },
+});
+
 // === Utilities ===
 export const compareVersion = (v1, v2) => {
   const a = v1.split(".").map(Number);
@@ -87,13 +96,20 @@ export async function safeGetVersion(server, _fetchWithTimeout) {
   }
 }
 
-export async function forwardRequest(apiURL, body = null, method = "GET", _fetchWithTimeout) {
+export async function forwardRequest(
+  apiURL,
+  body = null,
+  method = "GET",
+  extraHeaders = {},
+  _fetchWithTimeout
+) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   const res = await fetcher(apiURL, {
     method,
     headers: {
       "Content-Type": "application/json",
       "User-Agent": CONFIG.USER_AGENT,
+      ...extraHeaders,
     },
     body: body ? JSON.stringify(body) : null,
   });
@@ -137,17 +153,34 @@ export default {
       const country = request.headers.get("cf-ipcountry") || "UNKNOWN";
 
       const shuffled = [...CONFIG.NODES].sort(() => Math.random() - 0.5);
-      const selected = await Promise.any(shuffled.map((server) => safeGetVersion(server))).catch(
-        () => {
-          throw new Error("All upstream nodes failed");
+      let selected = null;
+      let lastError = null;
+
+      for (const node of shuffled) {
+        try {
+          selected = await safeGetVersion(node);
+          break;
+        } catch (err) {
+          lastError = err;
         }
-      );
+      }
+
+      if (!selected) {
+        throw lastError || new Error("All upstream nodes failed");
+      }
       // === Forward the actual request ===
       let respObj;
+
+      if (!DOWNSTREAM_HEADERS[selected.server]) {
+        throw new Error(`No security headers defined for ${selected.server}`);
+      }
+
+      const nodeHeaders = DOWNSTREAM_HEADERS[selected.server];
+
       if (method === "POST") {
-        respObj = await forwardRequest(selected.server, requestBody, "POST");
+        respObj = await forwardRequest(selected.server, requestBody, "POST", nodeHeaders);
       } else {
-        respObj = await forwardRequest(selected.server);
+        respObj = await forwardRequest(selected.server, null, "GET", nodeHeaders);
       }
 
       // === Parse upstream response ===

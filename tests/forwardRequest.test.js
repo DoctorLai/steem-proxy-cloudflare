@@ -9,7 +9,13 @@ describe("forwardRequest()", () => {
       text: async () => '{"message":"ok"}',
     });
 
-    const result = await forwardRequest("https://example.com", null, "GET", mockFetch);
+    const result = await forwardRequest(
+      "https://example.com",
+      null,
+      "GET",
+      {}, // extraHeaders
+      mockFetch // fetchFn
+    );
 
     expect(mockFetch).toHaveBeenCalledOnce();
     expect(mockFetch).toHaveBeenCalledWith(
@@ -27,22 +33,59 @@ describe("forwardRequest()", () => {
       text: async () => '{"success":true}',
     });
 
-    const result = await forwardRequest("https://example.com/api", body, "POST", mockFetch);
+    const result = await forwardRequest(
+      "https://example.com/api",
+      body,
+      "POST",
+      {}, // extraHeaders
+      mockFetch // fetchFn
+    );
 
     expect(mockFetch).toHaveBeenCalledOnce();
+
     const callOptions = mockFetch.mock.calls[0][1];
     expect(callOptions.method).toBe("POST");
     expect(callOptions.body).toBe(JSON.stringify(body));
+
     expect(result).toEqual({ statusCode: 201, text: '{"success":true}' });
+  });
+
+  it("forwards extra headers to downstream", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "{}",
+    });
+
+    const extraHeaders = {
+      "X-Edge-Key": "TEST_SECRET",
+    };
+
+    await forwardRequest("https://example.com", null, "GET", extraHeaders, mockFetch);
+
+    const callOptions = mockFetch.mock.calls[0][1];
+    expect(callOptions.headers["X-Edge-Key"]).toBe("TEST_SECRET");
   });
 
   it("throws if fetchFn rejects", async () => {
     const mockFetch = vi.fn().mockRejectedValue(new Error("Network Error"));
 
-    await expect(forwardRequest("https://example.com", null, "GET", mockFetch)).rejects.toThrow(
+    await expect(forwardRequest("https://example.com", null, "GET", {}, mockFetch)).rejects.toThrow(
       "Network Error"
     );
 
     expect(mockFetch).toHaveBeenCalledOnce();
+  });
+
+  it("handles non-JSON upstream response", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () => "NOT_JSON",
+    });
+
+    const result = await forwardRequest("https://example.com", null, "GET", {}, mockFetch);
+
+    expect(result.text).toBe("NOT_JSON");
   });
 });

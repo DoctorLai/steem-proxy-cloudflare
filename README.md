@@ -23,12 +23,18 @@ before forwarding each JSON-RPC request. A public instance is available at
 
 ## Features
 
-- Concurrent node health checks with minimum-version validation
-- Automatic failover through `Promise.any`
+- Sequential node health checks with minimum-version validation
+- Efficient failover that minimizes Cloudflare Snippet subrequests
 - Five-second deadlines and abort-signal support for upstream requests
 - CORS support for `GET`, `POST`, and preflight requests
 - Upstream status preservation with origin and version metadata
 - No application database, cookies, or client-side storage
+
+## Cloudflare Plan Requirements
+
+The Snippet deployment requires a Cloudflare Pro plan or higher because it needs at least two
+subrequests: one node version check and one forwarded request. Worker deployments use the limits of
+their configured Workers plan.
 
 ## Quick Start
 
