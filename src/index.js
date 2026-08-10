@@ -53,15 +53,36 @@ export async function fetchWithTimeout(
     externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
   }
 
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
+  const cleanup = () => {
     clearTimeout(timeoutId);
     externalSignal?.removeEventListener("abort", abortFromExternalSignal);
+  };
+
+  let res;
+  try {
+    res = await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    cleanup();
+    throw err;
   }
+
+  // Keep the timeout/abort signal active until the response body has been
+  // fully consumed, since fetch() resolves as soon as headers arrive.
+  for (const method of ["json", "text", "arrayBuffer", "blob", "formData"]) {
+    const original = res[method].bind(res);
+    res[method] = async (...args) => {
+      try {
+        return await original(...args);
+      } finally {
+        cleanup();
+      }
+    };
+  }
+
+  return res;
 }
 
-export async function getVersion(server, _fetchWithTimeout) {
+export async function getVersion(server, _fetchWithTimeout, signal) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   const res = await fetcher(server, {
     method: "POST",
@@ -75,6 +96,7 @@ export async function getVersion(server, _fetchWithTimeout) {
       method: "call",
       params: ["login_api", "get_version", []],
     }),
+    signal,
   });
   if (!res.ok) throw new Error(`${server} returned ${res.status}`);
   const json = await res.json();
@@ -86,10 +108,10 @@ export async function getVersion(server, _fetchWithTimeout) {
   return { server, version: ver };
 }
 
-export async function safeGetVersion(server, _fetchWithTimeout) {
+export async function safeGetVersion(server, _fetchWithTimeout, signal) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
   try {
-    return await getVersion(server, fetcher);
+    return await getVersion(server, fetcher, signal);
   } catch (err) {
     console.warn(`Version check failed for ${server}: ${err.message}`);
     throw err;
@@ -101,9 +123,11 @@ export async function forwardRequest(
   body = null,
   method = "GET",
   extraHeaders = {},
-  _fetchWithTimeout
+  _fetchWithTimeout,
+  signal
 ) {
   const fetcher = _fetchWithTimeout || fetchWithTimeout;
+  const hasBody = body !== null && body !== undefined;
   const res = await fetcher(apiURL, {
     method,
     headers: {
@@ -111,7 +135,8 @@ export async function forwardRequest(
       "User-Agent": CONFIG.USER_AGENT,
       ...extraHeaders,
     },
-    body: body ? JSON.stringify(body) : null,
+    body: hasBody ? JSON.stringify(body) : null,
+    signal,
   });
   const text = await res.text();
   return { statusCode: res.status, text };
@@ -158,7 +183,7 @@ export default {
 
       for (const node of shuffled) {
         try {
-          selected = await safeGetVersion(node);
+          selected = await safeGetVersion(node, undefined, request.signal);
           break;
         } catch (err) {
           lastError = err;
@@ -178,9 +203,23 @@ export default {
       const nodeHeaders = DOWNSTREAM_HEADERS[selected.server];
 
       if (method === "POST") {
-        respObj = await forwardRequest(selected.server, requestBody, "POST", nodeHeaders);
+        respObj = await forwardRequest(
+          selected.server,
+          requestBody,
+          "POST",
+          nodeHeaders,
+          undefined,
+          request.signal
+        );
       } else {
-        respObj = await forwardRequest(selected.server, null, "GET", nodeHeaders);
+        respObj = await forwardRequest(
+          selected.server,
+          null,
+          "GET",
+          nodeHeaders,
+          undefined,
+          request.signal
+        );
       }
 
       // === Parse upstream response ===
