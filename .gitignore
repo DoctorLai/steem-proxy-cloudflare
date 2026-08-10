@@ -137,3 +137,15 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Cloudflare and build output
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.wrangler/
+dist/
+
+# Editors and operating systems
+.DS_Store
+.idea/
+.vscode/

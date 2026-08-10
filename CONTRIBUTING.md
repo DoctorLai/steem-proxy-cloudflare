@@ -1,62 +1,50 @@
-# Contributing to This Project
+# Contributing
 
-Thank you for considering contributing to this project! We welcome contributions of all kinds, including bug fixes, new features, and improvements to the documentation.
+Bug fixes, focused features, tests, and documentation improvements are welcome. By participating,
+you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report vulnerabilities privately as
+described in [SECURITY.md](SECURITY.md).
 
 ## Getting Started
 
-1. **Fork the Repository:**
-   - Click the "Fork" button at the top right of the repository page.
-2. **Clone Your Fork:**
-   ```bash
-   git clone https://github.com/DoctorLai/steem-proxy-cloudflare.git
-   cd steem-proxy-cloudflare
-   ```
-3. **Install Dependencies:**
-   ```bash
-   npm install
-   ```
+Node.js 22 and npm are required. Fork the repository, then set up your checkout:
+
+```bash
+git clone https://github.com/YOUR-USERNAME/steem-proxy-cloudflare.git
+cd steem-proxy-cloudflare
+nvm use
+npm ci
+```
 
 ## Making Changes
 
-1. **Create a Branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-2. **Make Your Changes:**
-   - Run format to ensure code style:
-     ```bash
-     npm run format
-     ## Fix automatically the coding style
-     npm run format:fix
-     ```
-   - Run linter to ensure code quality:
-     ```bash
-     npm run lint
-     ``` 
-3. **Commit Your Changes:**
-   ```bash
-   git add .
-   git commit -m "Add your meaningful commit message"
-   ```
-4. **Push to Your Fork:**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
+Create a focused branch from the latest `main`:
+
+```bash
+git switch -c fix/short-description
+```
+
+- Keep behavior changes small and preserve the public response contract unless the change is
+  intentionally breaking.
+- Add tests for success, failure, timeout, or parsing paths affected by the change.
+- Do not include credentials, `.dev.vars`, private RPC payloads, generated coverage, or `dist/`.
+- Update `README.md`, `docs/API.md`, and `CHANGELOG.md` when behavior or deployment changes.
+- Use `npm run format:fix` and `npm run lint:fix` only for files relevant to your change.
+
+Run the complete local gate before committing:
+
+```bash
+npm run check
+```
+
+For a narrower feedback loop, use `npm test`, `npm run test:watch`, `npm run lint`, or
+`npm run coverage`. The coverage command enforces 80% thresholds for lines, statements, functions,
+and branches.
 
 ## Submitting Your Contribution
 
-1. **Create a Pull Request:**
-   - Go to the original repository and click the "New Pull Request" button.
-   - Select your fork and branch as the source and submit the pull request.
-2. **Review Process:**
-   - The maintainers will review your changes and may request additional changes.
+Push the branch to your fork and open a pull request against `main`. Complete the pull request
+template, explain user-visible changes, and list the checks you ran. CI executes `npm run check` and
+posts a Vitest coverage report to the pull request.
 
-## Code of Conduct
-
-By contributing, you agree to follow our [Code of Conduct](CODE_OF_CONDUCT.md).
-
-## Questions or Help?
-
-If you have any questions or need help, feel free to open an issue or reach out in the discussions.
-
-Happy coding! 🚀
+Maintainers may request changes to behavior, tests, documentation, or commit scope. See
+[SUPPORT.md](SUPPORT.md) for help with development or deployment questions.

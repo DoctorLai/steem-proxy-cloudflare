@@ -3,14 +3,14 @@ export const CONFIG = {
   USER_AGENT:
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36",
   MIN_VERSION: "0.23.0",
-  SERVERLESS_VERSION: "2025-10-20",
+  SERVERLESS_VERSION: "2026-08-10",
   NODES: ["https://api.justyy.com", "https://api.steemit.com"],
   FETCH_TIMEOUT_MS: 5000,
 };
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, HEAD, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
@@ -27,16 +27,28 @@ export const compareVersion = (v1, v2) => {
   return 0;
 };
 
-export async function fetchWithTimeout(url, options = {}, timeout = 5000, timer = setTimeout) {
+export async function fetchWithTimeout(
+  url,
+  options = {},
+  timeout = CONFIG.FETCH_TIMEOUT_MS,
+  timer = setTimeout
+) {
   const controller = new AbortController();
-  const t = timer(() => controller.abort(), timeout);
+  const timeoutId = timer(() => controller.abort(), timeout);
+  const externalSignal = options.signal;
+  const abortFromExternalSignal = () => controller.abort(externalSignal.reason);
+
+  if (externalSignal?.aborted) {
+    abortFromExternalSignal();
+  } else {
+    externalSignal?.addEventListener("abort", abortFromExternalSignal, { once: true });
+  }
+
   try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(t);
-    return res;
-  } catch (err) {
-    clearTimeout(t);
-    throw err;
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+    externalSignal?.removeEventListener("abort", abortFromExternalSignal);
   }
 }
 
@@ -106,19 +118,34 @@ export default {
       });
     }
 
+    let requestBody = null;
+    if (method === "POST") {
+      try {
+        requestBody = await request.json();
+      } catch {
+        return new Response(
+          JSON.stringify({ code: "INVALID_JSON", error: "Request body must be valid JSON" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
     try {
       const country = request.headers.get("cf-ipcountry") || "UNKNOWN";
-      const ip = request.headers.get("CF-Connecting-IP") || "0.0.0.0";
 
-      const shuffled = CONFIG.NODES.sort(() => Math.random() - 0.5);
-      let selected = await Promise.any(shuffled.map((s) => safeGetVersion(s, fetch))).catch(() => {
-        throw new Error("All upstream nodes failed");
-      });
+      const shuffled = [...CONFIG.NODES].sort(() => Math.random() - 0.5);
+      const selected = await Promise.any(shuffled.map((server) => safeGetVersion(server))).catch(
+        () => {
+          throw new Error("All upstream nodes failed");
+        }
+      );
       // === Forward the actual request ===
       let respObj;
       if (method === "POST") {
-        const body = await request.json();
-        respObj = await forwardRequest(selected.server, body, "POST");
+        respObj = await forwardRequest(selected.server, requestBody, "POST");
       } else {
         respObj = await forwardRequest(selected.server);
       }
@@ -132,11 +159,13 @@ export default {
       }
 
       // === Add metadata ===
-      json["__server__"] = selected.server;
-      json["__version__"] = selected.version;
-      json["__country__"] = country;
-      json["__serverless_version__"] = CONFIG.SERVERLESS_VERSION;
-      json["__steem_servers__"] = CONFIG.NODES;
+      if (json !== null && typeof json === "object" && !Array.isArray(json)) {
+        json["__server__"] = selected.server;
+        json["__version__"] = selected.version;
+        json["__country__"] = country;
+        json["__serverless_version__"] = CONFIG.SERVERLESS_VERSION;
+        json["__steem_servers__"] = CONFIG.NODES;
+      }
 
       // === Response ===
       return new Response(JSON.stringify(json), {
@@ -144,11 +173,10 @@ export default {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "Cache-Control": "max-age=3",
+          "Cache-Control": "private, max-age=3",
           "X-Serverless-Version": CONFIG.SERVERLESS_VERSION,
           "X-Origin-Server": selected.server,
           "X-Country": country,
-          "X-Client-IP": ip,
         },
       });
     } catch (err) {
