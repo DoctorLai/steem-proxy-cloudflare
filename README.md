@@ -142,9 +142,9 @@ for the public instance configuration.
 
 Project support is optional. You can:
 
-- [Buy me a coffee](https://justyy.com/out/bmc)
+- [Buy me a coffee](https://buymeacoffee.com/y0btg5r)
 - [Sponsor me](https://github.com/sponsors/DoctorLai)
 - [Vote me as a witness](https://steemyy.com/witness-voting/?witness=justyy&action=approve)
 - [Set `justyy` as a witness proxy](https://steemyy.com/witness-voting/?witness=justyy&action=proxy)
 
-<a rel="nofollow" href="http://steemyy.com/out/buymecoffee" target="_blank"><img src="https://user-images.githubusercontent.com/1764434/161362754-c45a85d3-5c80-4e10-b05c-62af49291d0b.png" alt="Buy me a Coffee"/></a>
+<a rel="nofollow" href="https://buymeacoffee.com/y0btg5r" target="_blank"><img src="https://user-images.githubusercontent.com/1764434/161362754-c45a85d3-5c80-4e10-b05c-62af49291d0b.png" alt="Buy me a Coffee"/></a>
