@@ -1,0 +1,37 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      rpc_url:
+        description: 'Steem RPC node URL to test'
+        required: false
+        default: 'https://api2.steemyy.com'
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integration:
+    name: Run integration tests against Steem RPC node
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Install Steem SDKs for integration tests
+        run: npm install --no-save steem@0.7.11 dsteem@0.11.3
+
+      - name: Run integration tests
+        env:
+          STEEM_RPC_URL: ${{ github.event.inputs.rpc_url || 'https://api2.steemyy.com' }}
+        run: node tests/integration-tests.js
